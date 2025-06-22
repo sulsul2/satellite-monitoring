@@ -21,7 +21,7 @@ const RegisterPage: React.FC = () => {
       });
       console.log(response);
 
-      if (response.status == 200) {
+      if (response.status == 201) {
         navigate('/');
       } else {
         setError(response.data.message || 'Username atau password salah!');
