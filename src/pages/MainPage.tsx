@@ -1,23 +1,43 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import "ol/ol.css";
 import { Map, View } from "ol";
 import TileLayer from "ol/layer/Tile";
 import OSM from "ol/source/OSM";
 import CustomIconButton from "../components/CustomIconButton";
-import { LuSatellite, LuSatelliteDish } from "react-icons/lu";
+import { LuFileUp, LuSatellite, LuSatelliteDish } from "react-icons/lu";
 import { MdLogin, MdRadar } from "react-icons/md";
+import { SlGraph } from "react-icons/sl";
 import { FaWifi } from "react-icons/fa";
 import Modal from "../components/Modal";
 import Button from "../components/Button";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
-import { Antenna, Beam, Link, Satellite } from "../types";
+import {
+  Antenna,
+  Beam,
+  ChartData,
+  Link,
+  RawAntennaData,
+  Satellite,
+} from "../types";
 import MapView from "../components/Map";
 import { fromLonLat } from "ol/proj";
 import { Steps } from "intro.js-react";
 import "intro.js/introjs.css";
 import "intro.js/themes/introjs-modern.css";
+import { useDropzone } from "react-dropzone";
+import * as XLSX from "xlsx";
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 const MainPage: React.FC = () => {
   const url = process.env.REACT_APP_API_URL;
@@ -40,6 +60,7 @@ const MainPage: React.FC = () => {
   const [fdRatio, setFdRatio] = useState("");
   const [frequency, setFrequency] = useState("");
   const [efficiency, setEfficiency] = useState("");
+  const [fullAntennaData, setFullAntennaData] = useState<RawAntennaData[]>([]);
 
   // State untuk modal beam
   const [isBeamModalOpen, setIsBeamModalOpen] = useState(false);
@@ -48,6 +69,10 @@ const MainPage: React.FC = () => {
   const [selectedAntenna, setSelectedAntenna] = useState("");
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [beamIdToDelete, setBeamIdToDelete] = useState<number | null>(null);
+  const [beamInputMethod, setBeamInputMethod] = useState<
+    "manual" | "excel" | null
+  >(null);
+  const [beamExcelFile, setBeamExcelFile] = useState<File | null>(null);
 
   // State untuk data Link Budget
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
@@ -62,6 +87,11 @@ const MainPage: React.FC = () => {
   const [isLinkDeleteConfirmOpen, setIsLinkDeleteConfirmOpen] = useState(false);
   const [editingLinkId, setEditingLinkId] = useState<number | null>(null);
 
+  const [isGraphModalOpen, setIsGraphModalOpen] = useState(false);
+  const [selectedAntennaForGraph, setSelectedAntennaForGraph] =
+    useState<string>("");
+  const [chartData, setChartData] = useState<ChartData[]>([]);
+
   // State untuk modal logout
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
@@ -70,6 +100,23 @@ const MainPage: React.FC = () => {
   const [beams, setBeams] = useState<Beam[]>([]);
   const [links, setLinks] = useState<Link[]>([]);
   const token = localStorage.getItem("access_token");
+
+  // Dropzone hook
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles && acceptedFiles.length > 0) {
+      setBeamExcelFile(acceptedFiles[0]);
+    }
+  }, []);
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
+        ".xlsx",
+      ],
+      "application/vnd.ms-excel": [".xls"],
+    },
+    maxFiles: 1,
+  });
 
   // Definisi langkah-langkah untuk tutorial
   const tourSteps = [
@@ -154,6 +201,7 @@ const MainPage: React.FC = () => {
           });
         }
         if (antResponse.data && Array.isArray(antResponse.data)) {
+          setFullAntennaData(antResponse.data);
           const formattedAntennas: Antenna[] = antResponse.data.map(
             (item: any) => ({ id: item.id, name: item.name })
           );
@@ -304,7 +352,7 @@ const MainPage: React.FC = () => {
     }
   };
 
-  const handleBeamSubmit = async (e: React.FormEvent) => {
+  const handleBeamManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const beamData = {
       center_lat: parseFloat(centerLat),
@@ -333,9 +381,51 @@ const MainPage: React.FC = () => {
       console.error(error);
     }
   };
+  const handleBeamExcelSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!beamExcelFile || !selectedAntenna) {
+      toast.error("Harap unggah file Excel dan pilih antena.");
+      return;
+    }
+    const loadingToast = toast.loading("Memproses file Excel...");
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const bstr = event.target?.result;
+        const wb = XLSX.read(bstr, { type: "binary" });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws, { header: ["lat", "lon"] });
+        console.log(data.slice(1));
+
+        const beamDataFromExcel = {
+          id_antena: selectedAntenna,
+          points: data.slice(1),
+        };
+
+        // Ganti dengan endpoint Anda untuk upload excel
+        await axios.post(
+          url + "beam/store-beams-from-excel",
+          beamDataFromExcel,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        toast.success("Semua beam dari Excel berhasil disimpan!", {
+          id: loadingToast,
+        });
+        window.location.reload();
+      } catch (error) {
+        toast.error("Gagal memproses file Excel.", { id: loadingToast });
+        console.error(error);
+      }
+    };
+    reader.readAsBinaryString(beamExcelFile);
+  };
 
   const handleBeamCancel = () => {
     setIsBeamModalOpen(false);
+    setBeamInputMethod(null);
+    setBeamExcelFile(null);
     setCenterLat("");
     setCenterLon("");
     setSelectedAntenna("");
@@ -466,6 +556,53 @@ const MainPage: React.FC = () => {
     } else {
       toast.error("Data link tidak ditemukan.");
     }
+  };
+
+  // Handler untuk modal grafik
+  const handleOpenGraphModal = () => {
+    if (fullAntennaData.length === 0) {
+      toast.error("Data antena belum tersedia atau gagal dimuat.");
+      return;
+    }
+
+    const firstAntenna = fullAntennaData[0];
+    setSelectedAntennaForGraph(String(firstAntenna.id));
+    if (firstAntenna && firstAntenna.theta_deg && firstAntenna.pattern_dB) {
+      const formattedData = firstAntenna.theta_deg.map((theta, index) => ({
+        theta: theta,
+        pattern: firstAntenna.pattern_dB[index],
+      }));
+      setChartData(formattedData);
+    } else {
+      setChartData([]);
+    }
+
+    setIsGraphModalOpen(true);
+  };
+
+  const handleAntennaSelectionChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const antennaId = e.target.value;
+    setSelectedAntennaForGraph(antennaId);
+
+    const selectedData = fullAntennaData.find(
+      (antenna) => antenna.id === parseInt(antennaId)
+    );
+
+    if (selectedData && selectedData.theta_deg && selectedData.pattern_dB) {
+      const formattedData = selectedData.theta_deg.map((theta, index) => ({
+        theta: theta,
+        pattern: selectedData.pattern_dB[index],
+      }));
+      setChartData(formattedData);
+    } else {
+      setChartData([]);
+    }
+  };
+
+  const handleGraphModalCancel = () => {
+    setIsGraphModalOpen(false);
   };
 
   // Handlers untuk Logout
@@ -668,85 +805,190 @@ const MainPage: React.FC = () => {
 
       {/* Modal Beam */}
       <Modal visible={isBeamModalOpen} onClose={handleBeamCancel}>
-        <form
-          onSubmit={handleBeamSubmit}
-          className="flex w-full flex-col gap-5"
-        >
+        <div className="flex w-full flex-col gap-5">
           <h1 className="text-center text-2xl font-bold text-gray-800">
             Input Data Beam
           </h1>
-          <div className="space-y-4">
-            <div>
-              <label
-                htmlFor="centerLat"
-                className="block text-sm font-medium text-gray-600 mb-1"
-              >
-                Center of Latitude
-              </label>
-              <input
-                type="number"
-                id="centerLat"
-                value={centerLat}
-                onChange={(e) => setCenterLat(e.target.value)}
-                placeholder="-6.2000"
-                step="any"
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+
+          {/* Tampilkan pilihan jika belum ada metode yang dipilih */}
+          {!beamInputMethod && (
+            <div className="flex justify-center gap-4 py-8">
+              <Button
+                text="Input Manual"
+                onClick={() => setBeamInputMethod("manual")}
+                styleType="primary"
+              />
+              <Button
+                text="Import Excel"
+                onClick={() => setBeamInputMethod("excel")}
+                styleType="secondary"
               />
             </div>
-            <div>
-              <label
-                htmlFor="centerLon"
-                className="block text-sm font-medium text-gray-600 mb-1"
-              >
-                Center of Longitude
-              </label>
-              <input
-                type="number"
-                id="centerLon"
-                value={centerLon}
-                onChange={(e) => setCenterLon(e.target.value)}
-                placeholder="106.8167"
-                step="any"
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="antenna"
-                className="block text-sm font-medium text-gray-600 mb-1"
-              >
-                Pilih Antena
-              </label>
-              <select
-                id="antenna"
-                value={selectedAntenna}
-                onChange={(e) => setSelectedAntenna(e.target.value)}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="" disabled>
-                  -- Pilih salah satu --
-                </option>
-                {antennas.map((antenna) => (
-                  <option key={antenna.id} value={antenna.id}>
-                    {antenna.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="flex w-full justify-end gap-3 pt-4">
-            <Button
-              onClick={handleBeamCancel}
-              text="Batalkan"
-              type="button"
-              styleType="secondary"
-            />
-            <Button text="Simpan Data" type="submit" styleType="primary" />
-          </div>
-        </form>
+          )}
+
+          {/* Form untuk Input Manual */}
+          {beamInputMethod === "manual" && (
+            <form
+              onSubmit={handleBeamManualSubmit}
+              className="flex w-full flex-col gap-5"
+            >
+              <div className="space-y-4">
+                {/* Input Lat, Lon, dan Dropdown Antena */}
+                <div>
+                  <label
+                    htmlFor="centerLat"
+                    className="block text-sm font-medium text-gray-600 mb-1"
+                  >
+                    Center of Latitude
+                  </label>
+                  <input
+                    type="number"
+                    id="centerLat"
+                    value={centerLat}
+                    onChange={(e) => setCenterLat(e.target.value)}
+                    placeholder="-6.2000"
+                    step="any"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="centerLon"
+                    className="block text-sm font-medium text-gray-600 mb-1"
+                  >
+                    Center of Longitude
+                  </label>
+                  <input
+                    type="number"
+                    id="centerLon"
+                    value={centerLon}
+                    onChange={(e) => setCenterLon(e.target.value)}
+                    placeholder="106.8167"
+                    step="any"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="antenna"
+                    className="block text-sm font-medium text-gray-600 mb-1"
+                  >
+                    Pilih Antena
+                  </label>
+                  <select
+                    id="antenna"
+                    value={selectedAntenna}
+                    onChange={(e) => setSelectedAntenna(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="" disabled>
+                      -- Pilih salah satu --
+                    </option>
+                    {antennas.map((antenna) => (
+                      <option key={antenna.id} value={antenna.id}>
+                        {antenna.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="flex w-full justify-end gap-3 pt-4">
+                <Button
+                  onClick={handleBeamCancel}
+                  text="Batalkan"
+                  type="button"
+                  styleType="secondary"
+                />
+                <Button text="Simpan Data" type="submit" styleType="primary" />
+              </div>
+            </form>
+          )}
+
+          {/* Form untuk Import Excel */}
+          {beamInputMethod === "excel" && (
+            <form
+              onSubmit={handleBeamExcelSubmit}
+              className="flex w-full flex-col gap-5"
+            >
+              <div className="space-y-4">
+                {/* Dropzone Area */}
+                <div
+                  {...getRootProps()}
+                  className={`p-10 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors ${
+                    isDragActive
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-300 hover:border-gray-400"
+                  }`}
+                >
+                  <input {...getInputProps()} />
+                  <LuFileUp className="mx-auto h-12 w-12 text-gray-400" />
+                  {beamExcelFile ? (
+                    <p className="mt-2 text-sm text-gray-600">
+                      {beamExcelFile.name}
+                    </p>
+                  ) : (
+                    <p className="mt-2 text-sm text-gray-500">
+                      Seret & lepas file Excel di sini, atau klik untuk memilih
+                      file
+                    </p>
+                  )}
+                </div>
+                {beamExcelFile && (
+                  <div className="text-center">
+                    <Button
+                      onClick={() => setBeamExcelFile(null)}
+                      text="Hapus File"
+                      type="button"
+                      styleType="danger"
+                    />
+                  </div>
+                )}
+
+                {/* Dropdown Antena */}
+                <div>
+                  <label
+                    htmlFor="antennaExcel"
+                    className="block text-sm font-medium text-gray-600 mb-1"
+                  >
+                    Pilih Antena untuk semua beam ini
+                  </label>
+                  <select
+                    id="antennaExcel"
+                    value={selectedAntenna}
+                    onChange={(e) => setSelectedAntenna(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="" disabled>
+                      -- Pilih salah satu --
+                    </option>
+                    {antennas.map((antenna) => (
+                      <option key={antenna.id} value={antenna.id}>
+                        {antenna.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="flex w-full justify-end gap-3 pt-4">
+                <Button
+                  onClick={handleBeamCancel}
+                  text="Batalkan"
+                  type="button"
+                  styleType="secondary"
+                />
+                <Button
+                  text="Import & Simpan"
+                  type="submit"
+                  styleType="primary"
+                />
+              </div>
+            </form>
+          )}
+        </div>
       </Modal>
 
       {/* Modal Link Budget (untuk Create & Update) */}
@@ -943,6 +1185,79 @@ const MainPage: React.FC = () => {
         </div>
       </Modal>
 
+      {/* Modal Grafik Antena */}
+      <Modal visible={isGraphModalOpen} onClose={handleGraphModalCancel}>
+        <div className="flex w-full flex-col gap-5">
+          <h1 className="text-center text-2xl font-bold text-gray-800">
+            Grafik Radiasi Antena
+          </h1>
+
+          {/* Dropdown untuk memilih antena */}
+          <div>
+            <label
+              htmlFor="antenna-graph-select"
+              className="block text-sm font-medium text-gray-600 mb-1"
+            >
+              Pilih Antena
+            </label>
+            <select
+              id="antenna-graph-select"
+              value={selectedAntennaForGraph}
+              onChange={handleAntennaSelectionChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="" disabled>
+                -- Pilih salah satu antena --
+              </option>
+              {antennas.map((antenna) => (
+                <option key={antenna.id} value={antenna.id}>
+                  {antenna.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Kontainer untuk Grafik */}
+          <div className="w-full h-80 mt-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={chartData}
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="theta"
+                  label={{
+                    value: "Theta (derajat)",
+                    position: "insideBottomRight",
+                    offset: -5,
+                  }}
+                />
+                <YAxis
+                  label={{
+                    value: "Gain (dB)",
+                    angle: -90,
+                    position: "insideLeft",
+                  }}
+                />
+                <Tooltip
+                  formatter={(value: number) => `${value.toFixed(2)} dB`}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="pattern"
+                  stroke="#8884d8"
+                  strokeWidth={2}
+                  dot={false}
+                  name="Pola Radiasi"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </Modal>
+
       {/* Modal Logout */}
       <Modal
         visible={isLogoutModalOpen}
@@ -1011,6 +1326,11 @@ const MainPage: React.FC = () => {
                 Icon={FaWifi}
               />
             </div>
+            <CustomIconButton
+              onClick={handleOpenGraphModal}
+              isActive={isGraphModalOpen}
+              Icon={SlGraph}
+            />
             <div id="tour-step-6">
               <CustomIconButton
                 onClick={() => setIsLogoutModalOpen(true)}

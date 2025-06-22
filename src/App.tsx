@@ -3,6 +3,11 @@ import LoginPage from "./pages/LoginPage";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import MainPage from "./pages/MainPage";
 import RegisterPage from "./pages/RegisterPage";
+import ProtectedRoute from "./components/ProtectedRoutes";
+import BerandaPage from "./pages/BerandaPage";
+import TentangKamiPage from "./pages/TentangKamiPage";
+import BeritaPage from "./pages/BeritaPage";
+import HubungiKamiPage from "./pages/HubungiKamiPage";
 
 function App() {
   return (
@@ -10,8 +15,19 @@ function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/beranda" element={<BerandaPage />} />
+        <Route path="/tentangkami" element={<TentangKamiPage />} />
+        <Route path="/berita" element={<BeritaPage />} />
+        <Route path="/hubungikami" element={<HubungiKamiPage />} />
 
-        <Route path="/" element={<MainPage />} />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <MainPage />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="*"

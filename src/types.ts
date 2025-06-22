@@ -5,6 +5,19 @@ export interface Antenna {
   name: string;
 }
 
+export interface RawAntennaData {
+  bw3db_deg: number;
+  directivity: number;
+  eff: number;
+  f_d: number;
+  frekuensi: number;
+  id: number;
+  id_satelite: number;
+  name: string;
+  pattern_dB: number[]; // Array angka untuk grafik
+  theta_deg: number[]; // Array angka untuk grafik
+}
+
 export interface Satellite {
   id: number;
   lat: number;
@@ -48,4 +61,9 @@ export interface Link {
   loss: number;
   suhu: number;
   tx_sat: number;
+}
+
+export interface ChartData {
+  theta: number;
+  pattern: number;
 }
