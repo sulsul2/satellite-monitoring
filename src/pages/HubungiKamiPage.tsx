@@ -46,6 +46,7 @@ const HubungiKamiPage: React.FC = () => {
     { href: "/tentangkami", text: "TENTANG KAMI" },
     { href: "/berita", text: "BERITA" },
     { href: "/hubungikami", text: "HUBUNGI KAMI" },
+    { href: "/register", text: "REGISTER" },
     { href: "/login", text: "LOGIN" },
   ];
 

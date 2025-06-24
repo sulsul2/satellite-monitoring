@@ -8,6 +8,7 @@ import { LuFileUp, LuSatellite, LuSatelliteDish } from "react-icons/lu";
 import { MdLogin, MdRadar } from "react-icons/md";
 import { SlGraph } from "react-icons/sl";
 import { FaWifi } from "react-icons/fa";
+import { RxCross2 } from "react-icons/rx";
 import Modal from "../components/Modal";
 import Button from "../components/Button";
 import { useNavigate } from "react-router-dom";
@@ -101,6 +102,15 @@ const MainPage: React.FC = () => {
   const [links, setLinks] = useState<Link[]>([]);
   const token = localStorage.getItem("access_token");
 
+  const isAnyModalOpen =
+    isSatelliteModalOpen ||
+    isAntennaModalOpen ||
+    isBeamModalOpen ||
+    isLinkModalOpen ||
+    isGraphModalOpen ||
+    isLogoutModalOpen ||
+    isDeleteConfirmOpen;
+
   // Dropzone hook
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
@@ -122,32 +132,27 @@ const MainPage: React.FC = () => {
   const tourSteps = [
     {
       element: "#tour-step-1",
-      intro:
-        "Langkah 1: Klik ikon ini untuk menambahkan data satelit utama Anda.",
+      intro: "Langkah 1: Klik ikon ini untuk menambahkan data satelit utama Anda.<br><br><i>Step 1: Click this icon to add your main satellite data.</i>",
     },
     {
       element: "#tour-step-2",
-      intro: "Langkah 2: Setelah satelit ada, tambahkan data antena di sini.",
+      intro: "Langkah 2: Setelah satelit ada, tambahkan data antena di sini.<br><br><i>Step 2: Once the satellite exists, add antenna data here.</i>",
     },
     {
       element: "#tour-step-3",
-      intro:
-        "Langkah 3: Tambahkan data beam yang terhubung dengan antena yang telah dibuat.",
+      intro: "Langkah 3: Tambahkan data beam yang terhubung dengan antena yang telah dibuat.<br><br><i>Step 3: Add beam data linked to the created antenna.</i>",
     },
     {
       element: "#tour-step-4",
-      intro:
-        "Langkah 4: Hitung link budget untuk sebuah titik observasi di peta.",
+      intro: "Langkah 4: Hitung link budget untuk sebuah titik observasi di peta.<br><br><i>Step 4: Calculate the link budget for an observation point on the map.</i>",
     },
     {
       element: "#tour-step-5",
-      intro:
-        "Langkah 5: Semua hasil perhitungan (beam dan link) akan divisualisasikan di peta ini.",
+      intro: "Langkah 5: Semua hasil perhitungan (beam dan link) akan divisualisasikan di peta ini.<br><br><i>Step 5: All calculation results (beams and links) will be visualized on this map.</i>",
     },
     {
       element: "#tour-step-6",
-      intro:
-        "Langkah 6: Jika sudah selesai, Anda bisa keluar dari aplikasi melalui tombol ini.",
+      intro: "Langkah 6: Jika sudah selesai, Anda bisa keluar dari aplikasi melalui tombol ini.<br><br><i>Step 6: When finished, you can log out of the application using this button.</i>",
     },
   ];
 
@@ -1188,6 +1193,11 @@ const MainPage: React.FC = () => {
       {/* Modal Grafik Antena */}
       <Modal visible={isGraphModalOpen} onClose={handleGraphModalCancel}>
         <div className="flex w-full flex-col gap-5">
+          <div className="w-full flex justify-end">
+            <button className="" onClick={() => setIsGraphModalOpen(false)}>
+              <RxCross2 size={24} />
+            </button>
+          </div>
           <h1 className="text-center text-2xl font-bold text-gray-800">
             Grafik Radiasi Antena
           </h1>
@@ -1303,6 +1313,7 @@ const MainPage: React.FC = () => {
                 onClick={handleOpenSatelliteModal}
                 isActive={isSatelliteModalOpen}
                 Icon={LuSatellite}
+                disabled={isAnyModalOpen}
               />
             </div>
             <div id="tour-step-2">
@@ -1310,6 +1321,7 @@ const MainPage: React.FC = () => {
                 onClick={handleOpenAntennaModal}
                 isActive={isAntennaModalOpen}
                 Icon={LuSatelliteDish}
+                disabled={isAnyModalOpen}
               />
             </div>
             <div id="tour-step-3">
@@ -1317,6 +1329,7 @@ const MainPage: React.FC = () => {
                 onClick={handleOpenBeamModal}
                 isActive={isBeamModalOpen}
                 Icon={MdRadar}
+                disabled={isAnyModalOpen}
               />
             </div>
             <div id="tour-step-4">
@@ -1324,18 +1337,21 @@ const MainPage: React.FC = () => {
                 onClick={handleOpenLinkModal}
                 isActive={isLinkModalOpen}
                 Icon={FaWifi}
+                disabled={isAnyModalOpen}
               />
             </div>
             <CustomIconButton
               onClick={handleOpenGraphModal}
               isActive={isGraphModalOpen}
               Icon={SlGraph}
+              disabled={isAnyModalOpen}
             />
             <div id="tour-step-6">
               <CustomIconButton
                 onClick={() => setIsLogoutModalOpen(true)}
                 isActive={isLogoutModalOpen}
                 Icon={MdLogin}
+                disabled={isAnyModalOpen}
               />
             </div>
           </div>
