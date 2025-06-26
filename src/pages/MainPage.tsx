@@ -1224,7 +1224,7 @@ const MainPage: React.FC = () => {
               />
               <LinkDetailItem
                 label="Directivity"
-                value={`${10 * selectedLink.directivity} dBi`}
+                value={`${selectedLink.directivity} dBi`}
               />
               <LinkDetailItem
                 label="Daya Pancar (Tx)"

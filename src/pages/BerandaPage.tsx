@@ -356,7 +356,7 @@ const BerandaPage: React.FC = () => {
               <div className="text-center">
                 <img
                   src="https://i.imgur.com/LBfYji4.jpeg"
-                  alt="Achmad Kabir Rifai"
+                  alt="Achmad Kabir Rifa'i"
                   className="w-32 h-32 rounded-full mx-auto mb-4 border-4 border-blue-300 shadow-lg"
                 />
                 <h3 className="text-xl font-bold text-blue-900">
