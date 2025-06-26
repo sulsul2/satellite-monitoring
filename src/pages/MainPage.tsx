@@ -97,6 +97,14 @@ const MainPage: React.FC = () => {
   const [editingLinkId, setEditingLinkId] = useState<number | null>(null);
   const [isLinkInfoModalOpen, setIsLinkInfoModalOpen] = useState(false);
   const [selectedLink, setSelectedLink] = useState<Link | null>(null);
+  const defaultLinkValues = {
+    directivity: "45",
+    power: "17",
+    temperature: "100",
+    bandwidth: "36000000",
+    loss: "3",
+    carrierToInterference: "20",
+  };
 
   const [isGraphModalOpen, setIsGraphModalOpen] = useState(false);
   const [selectedAntennaForGraph, setSelectedAntennaForGraph] =
@@ -470,17 +478,24 @@ const MainPage: React.FC = () => {
       return;
     }
 
+    const linkParamsPayload: { [key: string]: number } = {};
+    if (directivity !== defaultLinkValues.directivity)
+      linkParamsPayload.dir_ground = parseFloat(directivity);
+    if (power !== defaultLinkValues.power)
+      linkParamsPayload.tx_sat = parseFloat(power);
+    if (temperature !== defaultLinkValues.temperature)
+      linkParamsPayload.suhu = parseFloat(temperature);
+    if (bandwidth !== defaultLinkValues.bandwidth)
+      linkParamsPayload.bw = parseFloat(bandwidth);
+    if (loss !== defaultLinkValues.loss)
+      linkParamsPayload.loss = parseFloat(loss);
+    if (carrierToInterference !== defaultLinkValues.carrierToInterference)
+      linkParamsPayload.ci_down = parseFloat(carrierToInterference);
+
     const linkData = {
       obs_lat: parseFloat(linkLat),
       obs_lon: parseFloat(linkLon),
-      link_params: {
-        dir_ground: parseFloat(directivity),
-        tx_sat: parseFloat(power),
-        suhu: parseFloat(temperature),
-        bw: parseFloat(bandwidth),
-        loss: parseFloat(loss),
-        ci_down: parseFloat(carrierToInterference),
-      },
+      link_params: linkParamsPayload,
     };
 
     if (editingLinkId) {
@@ -507,7 +522,6 @@ const MainPage: React.FC = () => {
         toast.error("Gagal memperbarui data.", { id: loadingToast });
       }
     } else {
-      // Logika untuk membuat link baru
       const loadingToast = toast.loading("Menyimpan data link...");
       try {
         await axios.post(url + "link_budget/calculate", linkData, {
