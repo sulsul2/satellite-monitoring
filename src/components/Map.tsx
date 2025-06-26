@@ -24,7 +24,7 @@ interface MapViewProps {
   onLinkInfoRequest: (linkData: Link) => void;
 }
 
-const VISUAL_SCALE_FACTOR = 3;
+const VISUAL_SCALE_FACTOR = 3.85;
 
 // Fungsi untuk mendapatkan warna berdasarkan level kontur
 const getContourColor = (level: number): string => {

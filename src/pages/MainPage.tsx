@@ -1202,15 +1202,15 @@ const MainPage: React.FC = () => {
                 label="C/N Ratio"
                 value={`${selectedLink.cinr?.toFixed(2)} dB`}
               />
-              <LinkDetailItem label="Latitude" value={selectedLink.clat} />
-              <LinkDetailItem label="Longitude" value={selectedLink.clon} />
+              <LinkDetailItem label="Latitude" value={selectedLink.lat} />
+              <LinkDetailItem label="Longitude" value={selectedLink.lon} />
               <LinkDetailItem
                 label="Jarak ke Satelit"
                 value={`${selectedLink.distance?.toFixed(0)} km`}
               />
               <LinkDetailItem
-                label="Directivity Antena"
-                value={`${selectedLink.dir_ground} dBi`}
+                label="Directivity"
+                value={`${10 * selectedLink.directivity} dBi`}
               />
               <LinkDetailItem
                 label="Daya Pancar (Tx)"
