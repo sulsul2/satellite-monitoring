@@ -6,7 +6,7 @@ const TentangKamiPage: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const navLinks = [
-    { href: "/beranda", text: "BERANDA" },
+    { href: "/", text: "BERANDA" },
     { href: "/tentangkami", text: "TENTANG KAMI" },
     { href: "/berita", text: "BERITA" },
     { href: "/hubungikami", text: "HUBUNGI KAMI" },
@@ -19,7 +19,7 @@ const TentangKamiPage: React.FC = () => {
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm fixed top-0 left-0 right-0 z-50 h-20 shadow-sm">
         <nav className="container mx-auto px-6 flex justify-between items-center h-full">
-          <a href="/beranda" className="flex-shrink-0">
+          <a href="/" className="flex-shrink-0">
             <img src="https://www.psn.co.id/wp-content/uploads/2022/08/new-psn-logo.png" alt="PSN Logo" className="h-10"/>
           </a>
           <div className="hidden lg:flex items-center space-x-8">

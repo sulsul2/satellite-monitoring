@@ -25,7 +25,7 @@ const LoginPage: React.FC = () => {
 
       if (response.status == 200) {
         localStorage.setItem("access_token", response.data.access_token);
-        navigate("/");
+        navigate("/map-view");
       } else {
         setError(response.data.message || "Username atau password salah!");
       }
@@ -50,7 +50,7 @@ const LoginPage: React.FC = () => {
     >
       {/* Box login dengan efek blur dan latar semi-transparan */}
       <div className="w-full max-w-md space-y-8 rounded-xl bg-gray-900 bg-opacity-80 p-8 shadow-lg backdrop-blur-md">
-        <Link to="/beranda" className="flex justify-start items-center gap-2 text-gray-400">
+        <Link to="/" className="flex justify-start items-center gap-2 text-gray-400">
           <IoIosArrowRoundBack size={24}/>
           <p>Kembali ke beranda</p>
         </Link>

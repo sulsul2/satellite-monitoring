@@ -15,13 +15,13 @@ function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/beranda" element={<BerandaPage />} />
+        <Route path="/" element={<BerandaPage />} />
         <Route path="/tentangkami" element={<TentangKamiPage />} />
         <Route path="/berita" element={<BeritaPage />} />
         <Route path="/hubungikami" element={<HubungiKamiPage />} />
 
         <Route
-          path="/"
+          path="/map-view"
           element={
             <ProtectedRoute>
               <MainPage />

@@ -24,7 +24,7 @@ const RegisterPage: React.FC = () => {
       console.log(response);
 
       if (response.status == 201) {
-        navigate("/");
+        navigate("/map-view");
       } else {
         setError(response.data.message || "Username atau password salah!");
       }
@@ -50,7 +50,7 @@ const RegisterPage: React.FC = () => {
       {/* Box login dengan efek blur dan latar semi-transparan */}
       <div className="w-full max-w-md space-y-8 rounded-xl bg-gray-900 bg-opacity-80 p-8 shadow-lg backdrop-blur-md">
         <Link
-          to="/beranda"
+          to="/"
           className="flex justify-start items-center gap-2 text-gray-400"
         >
           <IoIosArrowRoundBack size={24} />
