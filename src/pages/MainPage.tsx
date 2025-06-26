@@ -39,6 +39,15 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+const LinkDetailItem: React.FC<{
+  label: string;
+  value: string | number | undefined;
+}> = ({ label, value }) => (
+  <div className="grid grid-cols-2 gap-2 text-sm">
+    <span className="font-semibold text-gray-600">{label}</span>
+    <span className="text-gray-800">{String(value ?? "N/A")}</span>
+  </div>
+);
 
 const MainPage: React.FC = () => {
   const url = process.env.REACT_APP_API_URL;
@@ -85,8 +94,9 @@ const MainPage: React.FC = () => {
   const [bandwidth, setBandwidth] = useState("36000000");
   const [loss, setLoss] = useState("3");
   const [carrierToInterference, setCarrierToInterference] = useState("20");
-  const [isLinkDeleteConfirmOpen, setIsLinkDeleteConfirmOpen] = useState(false);
   const [editingLinkId, setEditingLinkId] = useState<number | null>(null);
+  const [isLinkInfoModalOpen, setIsLinkInfoModalOpen] = useState(false);
+  const [selectedLink, setSelectedLink] = useState<Link | null>(null);
 
   const [isGraphModalOpen, setIsGraphModalOpen] = useState(false);
   const [selectedAntennaForGraph, setSelectedAntennaForGraph] =
@@ -132,27 +142,33 @@ const MainPage: React.FC = () => {
   const tourSteps = [
     {
       element: "#tour-step-1",
-      intro: "Langkah 1: Klik ikon ini untuk menambahkan data satelit utama Anda.<br><br><i>Step 1: Click this icon to add your main satellite data.</i>",
+      intro:
+        "Langkah 1: Klik ikon ini untuk menambahkan data satelit utama Anda.<br><br><i>Step 1: Click this icon to add your main satellite data.</i>",
     },
     {
       element: "#tour-step-2",
-      intro: "Langkah 2: Setelah satelit ada, tambahkan data antena di sini.<br><br><i>Step 2: Once the satellite exists, add antenna data here.</i>",
+      intro:
+        "Langkah 2: Setelah satelit ada, tambahkan data antena di sini.<br><br><i>Step 2: Once the satellite exists, add antenna data here.</i>",
     },
     {
       element: "#tour-step-3",
-      intro: "Langkah 3: Tambahkan data beam yang terhubung dengan antena yang telah dibuat.<br><br><i>Step 3: Add beam data linked to the created antenna.</i>",
+      intro:
+        "Langkah 3: Tambahkan data beam yang terhubung dengan antena yang telah dibuat.<br><br><i>Step 3: Add beam data linked to the created antenna.</i>",
     },
     {
       element: "#tour-step-4",
-      intro: "Langkah 4: Hitung link budget untuk sebuah titik observasi di peta.<br><br><i>Step 4: Calculate the link budget for an observation point on the map.</i>",
+      intro:
+        "Langkah 4: Hitung link budget untuk sebuah titik observasi di peta.<br><br><i>Step 4: Calculate the link budget for an observation point on the map.</i>",
     },
     {
       element: "#tour-step-5",
-      intro: "Langkah 5: Semua hasil perhitungan (beam dan link) akan divisualisasikan di peta ini.<br><br><i>Step 5: All calculation results (beams and links) will be visualized on this map.</i>",
+      intro:
+        "Langkah 5: Semua hasil perhitungan (beam dan link) akan divisualisasikan di peta ini.<br><br><i>Step 5: All calculation results (beams and links) will be visualized on this map.</i>",
     },
     {
       element: "#tour-step-6",
-      intro: "Langkah 6: Jika sudah selesai, Anda bisa keluar dari aplikasi melalui tombol ini.<br><br><i>Step 6: When finished, you can log out of the application using this button.</i>",
+      intro:
+        "Langkah 6: Jika sudah selesai, Anda bisa keluar dari aplikasi melalui tombol ini.<br><br><i>Step 6: When finished, you can log out of the application using this button.</i>",
     },
   ];
 
@@ -401,20 +417,21 @@ const MainPage: React.FC = () => {
         const wb = XLSX.read(bstr, { type: "binary" });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws, { header: ["lat", "lon"] });
-        console.log(data.slice(1));
+        const data: any[][] = XLSX.utils.sheet_to_json(ws, {
+          header: 1,
+          range: 1,
+        });
+
+        const pointsAsArray = data.map((row) => [row[0], row[1]]);
 
         const beamDataFromExcel = {
-          id_antena: selectedAntenna,
-          points: data.slice(1),
+          id_antena: parseInt(selectedAntenna, 10),
+          points: pointsAsArray,
         };
 
-        // Ganti dengan endpoint Anda untuk upload excel
-        await axios.post(
-          url + "beam/store-beams-from-excel",
-          beamDataFromExcel,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        await axios.post(url + "beam/store-beams", beamDataFromExcel, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         toast.success("Semua beam dari Excel berhasil disimpan!", {
           id: loadingToast,
         });
@@ -478,8 +495,8 @@ const MainPage: React.FC = () => {
               ? {
                   ...link,
                   ...linkData,
-                  clat: linkData.obs_lat,
-                  clon: linkData.obs_lon,
+                  lat: linkData.obs_lat,
+                  lon: linkData.obs_lon,
                 }
               : link
           )
@@ -498,7 +515,6 @@ const MainPage: React.FC = () => {
         });
         toast.success("Data link berhasil disimpan!", { id: loadingToast });
         window.location.reload();
-        // Optional: Anda bisa melakukan fetch ulang data links atau menambahkan respons ke state
       } catch (error) {
         toast.error("Gagal menyimpan data.", { id: loadingToast });
       }
@@ -516,6 +532,13 @@ const MainPage: React.FC = () => {
     setBandwidth("36000000");
     setLoss("3");
     setCarrierToInterference("20");
+    setEditingLinkId(null);
+  };
+
+  // Handler untuk menampilkan modal detail link
+  const handleLinkInfoRequest = (linkData: Link) => {
+    setSelectedLink(linkData);
+    setIsLinkInfoModalOpen(true);
   };
 
   // Handler untuk menerima permintaan hapus dari MapView
@@ -1163,6 +1186,54 @@ const MainPage: React.FC = () => {
         </form>
       </Modal>
 
+      {/* Modal untuk Detail Link */}
+      <Modal
+        visible={isLinkInfoModalOpen}
+        onClose={() => setIsLinkInfoModalOpen(false)}
+      >
+        {selectedLink && (
+          <div className="space-y-4 p-4">
+            <h2 className="text-2xl font-bold text-blue-800 text-center mb-6">
+              Detail Link #{selectedLink.id}
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
+              <LinkDetailItem label="Status" value={selectedLink.evaluasi} />
+              <LinkDetailItem
+                label="C/N Ratio"
+                value={`${selectedLink.cinr?.toFixed(2)} dB`}
+              />
+              <LinkDetailItem label="Latitude" value={selectedLink.clat} />
+              <LinkDetailItem label="Longitude" value={selectedLink.clon} />
+              <LinkDetailItem
+                label="Jarak ke Satelit"
+                value={`${selectedLink.distance?.toFixed(0)} km`}
+              />
+              <LinkDetailItem
+                label="Directivity Antena"
+                value={`${selectedLink.dir_ground} dBi`}
+              />
+              <LinkDetailItem
+                label="Daya Pancar (Tx)"
+                value={`${selectedLink.tx_sat} Watt`}
+              />
+              <LinkDetailItem
+                label="Bandwidth"
+                value={`${selectedLink.bw / 1_000_000} MHz`}
+              />
+              <LinkDetailItem label="Suhu" value={`${selectedLink.suhu} K`} />
+              <LinkDetailItem label="Loss" value={`${selectedLink.loss} dB`} />
+            </div>
+            <div className="flex justify-center pt-6">
+              <Button
+                text="Tutup"
+                onClick={() => setIsLinkInfoModalOpen(false)}
+                styleType="secondary"
+              />
+            </div>
+          </div>
+        )}
+      </Modal>
+
       {/* Modal Konfirmasi Hapus Beam */}
       <Modal
         visible={isDeleteConfirmOpen}
@@ -1304,6 +1375,7 @@ const MainPage: React.FC = () => {
                 links={links}
                 onBeamDeleteRequest={handleDeleteRequest}
                 onLinkUpdateRequest={handleLinkUpdateRequest}
+                onLinkInfoRequest={handleLinkInfoRequest}
               />
             )}
           </div>

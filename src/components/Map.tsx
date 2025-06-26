@@ -6,12 +6,13 @@ import { fromLonLat, toLonLat } from "ol/proj";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import { Style, Fill, Stroke, Text, RegularShape } from "ol/style";
-import type { Satellite, Beam, Link } from "../types"; // Asumsikan tipe didefinisikan di file terpisah
+import type { Satellite, Beam, Link } from "../types";
 import CircleStyle from "ol/style/Circle";
 import Polygon from "ol/geom/Polygon";
 import Circle from "ol/geom/Circle";
 import Overlay from "ol/Overlay";
 import { CiSatellite1 } from "react-icons/ci";
+import Graticule from "ol/layer/Graticule";
 
 interface MapViewProps {
   map: Map | null;
@@ -20,6 +21,7 @@ interface MapViewProps {
   links: Link[];
   onBeamDeleteRequest: (beamId: number) => void;
   onLinkUpdateRequest: (linkId: number) => void;
+  onLinkInfoRequest: (linkData: Link) => void;
 }
 
 const VISUAL_SCALE_FACTOR = 3;
@@ -69,7 +71,8 @@ const MapView: React.FC<MapViewProps> = ({
   beams,
   links,
   onBeamDeleteRequest,
-  onLinkUpdateRequest
+  onLinkUpdateRequest,
+  onLinkInfoRequest,
 }) => {
   const mapElement = useRef<HTMLDivElement>(null);
 
@@ -89,9 +92,35 @@ const MapView: React.FC<MapViewProps> = ({
   const [beamToDelete, setBeamToDelete] = useState<number | null>(null);
   const [linkToInteract, setLinkToInteract] = useState<number | null>(null);
 
+  const featuresLayer = useRef<VectorLayer<VectorSource> | null>(null);
+
   useEffect(() => {
     if (!map || !mapElement.current) return;
     map.setTarget(mapElement.current);
+
+    // Hapus layer lama kecuali basemap untuk menghindari duplikasi
+    const layersToRemove = map.getLayers().getArray().slice(1);
+    layersToRemove.forEach((layer) => map.removeLayer(layer));
+
+    // Inisialisasi layer utama untuk fitur (beams, links)
+    const featureSource = new VectorSource();
+    featuresLayer.current = new VectorLayer({
+      source: featureSource,
+      zIndex: 10,
+    });
+    map.addLayer(featuresLayer.current);
+
+    // PERBARUAN: Buat dan tambahkan layer Graticule (Grid View)
+    const graticuleLayer = new Graticule({
+      strokeStyle: new Stroke({
+        color: "rgba(0,0,0,0.25)", // Warna garis grid
+        width: 1,
+        lineDash: [4, 4], // Garis putus-putus
+      }),
+      showLabels: true,
+      wrapX: false,
+    });
+    map.addLayer(graticuleLayer);
 
     // Inisialisasi overlays
     if (infoPopupElement.current && !infoOverlay.current) {
@@ -139,34 +168,22 @@ const MapView: React.FC<MapViewProps> = ({
         ?.getElement()
         ?.querySelector("#info-content");
 
-      // PERBAIKAN: Deklarasikan variabel di luar blok if
-      let infoText = "";
-      let position;
-
-      if (infoContentElement) {
-        if (feature && feature.get("type") === "beam-center") {
-          const coordinates = (feature.getGeometry() as Point).getCoordinates();
-          const lonLat = toLonLat(coordinates);
-          infoText = `<b>Beam Center</b><br>Lat: ${lonLat[1].toFixed(
-            4
-          )},<br>Lon: ${lonLat[0].toFixed(4)}`;
-          position = coordinates;
-        } else if (feature && feature.get("type") === "link-point") {
-          const coordinates = (feature.getGeometry() as Point).getCoordinates();
-          const lonLat = toLonLat(coordinates);
-          const linkId = feature.get("linkId");
-          const linkData = links.find((l) => l.id === linkId);
-          infoText = `<b>Link Point #${linkId}</b><br>Lat: ${lonLat[1].toFixed(
-            4
-          )}, Lon: ${lonLat[0].toFixed(4)}<br>C/N: ${
-            linkData?.cinr?.toFixed(2) ?? "N/A"
-          } dB`;
-          position = coordinates;
-        }
-
-        if (infoText && position) {
-          infoContentElement.innerHTML = infoText;
-          infoOverlay.current?.setPosition(position);
+      if (
+        feature &&
+        feature.get("type") === "beam-center" &&
+        infoContentElement
+      ) {
+        const coordinates = (feature.getGeometry() as Point).getCoordinates();
+        const lonLat = toLonLat(coordinates);
+        infoContentElement.innerHTML = `<b>Beam Center</b><br>Lat: ${lonLat[1].toFixed(
+          4
+        )}, Lon: ${lonLat[0].toFixed(4)}`;
+        infoOverlay.current?.setPosition(coordinates);
+      } else if (feature && feature.get("type") === "link-point") {
+        const linkId = feature.get("linkId");
+        const linkData = links.find((l) => l.id === linkId);
+        if (linkData) {
+          onLinkInfoRequest(linkData); // Panggil callback dengan data lengkap
         }
       }
     };
@@ -188,7 +205,6 @@ const MapView: React.FC<MapViewProps> = ({
     };
 
     map.on("click", handleLeftClick);
-    // PERBAIKAN: Gunakan 'as any' untuk menghindari error TypeScript jika diperlukan
     map.on("contextmenu" as any, handleRightClick);
 
     return () => {
@@ -196,6 +212,12 @@ const MapView: React.FC<MapViewProps> = ({
         map.setTarget(undefined);
         map.un("click", handleLeftClick);
         map.un("contextmenu" as any, handleRightClick);
+      }
+      if (map && featuresLayer.current) {
+        map.removeLayer(featuresLayer.current);
+      }
+      if (map && graticuleLayer) {
+        map.removeLayer(graticuleLayer);
       }
     };
   }, [map, links]);
