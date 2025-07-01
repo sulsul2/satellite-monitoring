@@ -9,6 +9,7 @@ import { MdLogin, MdRadar } from "react-icons/md";
 import { SlGraph } from "react-icons/sl";
 import { FaWifi } from "react-icons/fa";
 import { RxCross2 } from "react-icons/rx";
+import { IoGridSharp } from "react-icons/io5";
 import Modal from "../components/Modal";
 import Button from "../components/Button";
 import { useNavigate } from "react-router-dom";
@@ -110,6 +111,8 @@ const MainPage: React.FC = () => {
   const [selectedAntennaForGraph, setSelectedAntennaForGraph] =
     useState<string>("");
   const [chartData, setChartData] = useState<ChartData[]>([]);
+
+  const [isGridView, setIsGridView] = useState(false);
 
   // State untuk modal logout
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -1208,7 +1211,7 @@ const MainPage: React.FC = () => {
         {selectedLink && (
           <div className="space-y-4 p-4">
             <h2 className="text-2xl font-bold text-blue-800 text-center mb-6">
-              Detail Link #{selectedLink.id}
+              Detail Link {selectedLink.id}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
               <LinkDetailItem label="Status" value={selectedLink.evaluasi} />
@@ -1219,23 +1222,25 @@ const MainPage: React.FC = () => {
               <LinkDetailItem label="Latitude" value={selectedLink.lat} />
               <LinkDetailItem label="Longitude" value={selectedLink.lon} />
               <LinkDetailItem
-                label="Jarak ke Satelit"
-                value={`${selectedLink.distance?.toFixed(0)} km`}
+                label="Longitude Satelit"
+                value={`${longitude}`}
               />
               <LinkDetailItem
                 label="Directivity"
                 value={`${selectedLink.directivity} dBi`}
               />
               <LinkDetailItem
-                label="Daya Pancar (Tx)"
-                value={`${selectedLink.tx_sat} Watt`}
+                label="ID Beam"
+                value={`${selectedLink.id_beam}`}
               />
               <LinkDetailItem
                 label="Bandwidth"
                 value={`${selectedLink.bw / 1_000_000} MHz`}
               />
-              <LinkDetailItem label="Suhu" value={`${selectedLink.suhu} K`} />
+              <LinkDetailItem label="CINR" value={`${selectedLink.cinr} db`} />
               <LinkDetailItem label="Loss" value={`${selectedLink.loss} dB`} />
+              <LinkDetailItem label="G/T" value={`${selectedLink.gt} db`} />
+              <LinkDetailItem label="EIRP" value={`${selectedLink.eirp} dBi`} />
             </div>
             <div className="flex justify-center pt-6">
               <Button
@@ -1387,6 +1392,7 @@ const MainPage: React.FC = () => {
                 satellite={satellite}
                 beams={beams}
                 links={links}
+                isGridView={isGridView}
                 onBeamDeleteRequest={handleDeleteRequest}
                 onLinkUpdateRequest={handleLinkUpdateRequest}
                 onLinkInfoRequest={handleLinkInfoRequest}
@@ -1430,6 +1436,12 @@ const MainPage: React.FC = () => {
               onClick={handleOpenGraphModal}
               isActive={isGraphModalOpen}
               Icon={SlGraph}
+              disabled={isAnyModalOpen}
+            />
+            <CustomIconButton
+              onClick={() => setIsGridView(!isGridView)}
+              isActive={isGridView}
+              Icon={IoGridSharp}
               disabled={isAnyModalOpen}
             />
             <div id="tour-step-6">

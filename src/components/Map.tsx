@@ -19,6 +19,7 @@ interface MapViewProps {
   satellite: Satellite | null;
   beams: Beam[];
   links: Link[];
+  isGridView: boolean;
   onBeamDeleteRequest: (beamId: number) => void;
   onLinkUpdateRequest: (linkId: number) => void;
   onLinkInfoRequest: (linkData: Link) => void;
@@ -70,6 +71,7 @@ const MapView: React.FC<MapViewProps> = ({
   satellite,
   beams,
   links,
+  isGridView,
   onBeamDeleteRequest,
   onLinkUpdateRequest,
   onLinkInfoRequest,
@@ -93,6 +95,7 @@ const MapView: React.FC<MapViewProps> = ({
   const [linkToInteract, setLinkToInteract] = useState<number | null>(null);
 
   const featuresLayer = useRef<VectorLayer<VectorSource> | null>(null);
+  const graticuleLayer = useRef<Graticule | null>(null);
 
   useEffect(() => {
     if (!map || !mapElement.current) return;
@@ -110,17 +113,19 @@ const MapView: React.FC<MapViewProps> = ({
     });
     map.addLayer(featuresLayer.current);
 
-    // PERBARUAN: Buat dan tambahkan layer Graticule (Grid View)
-    const graticuleLayer = new Graticule({
+    // Inisialisasi layer Graticule (Grid View)
+    graticuleLayer.current = new Graticule({
       strokeStyle: new Stroke({
-        color: "rgba(0,0,0,0.25)", // Warna garis grid
+        color: "rgba(0,0,0,0.3)",
         width: 1,
-        lineDash: [4, 4], // Garis putus-putus
+        lineDash: [2, 4],
       }),
       showLabels: true,
       wrapX: false,
+      visible: false, // Mulai dengan kondisi tidak terlihat
+      zIndex: 1, // Di bawah fitur utama
     });
-    map.addLayer(graticuleLayer);
+    map.addLayer(graticuleLayer.current);
 
     // Inisialisasi overlays
     if (infoPopupElement.current && !infoOverlay.current) {
@@ -216,11 +221,19 @@ const MapView: React.FC<MapViewProps> = ({
       if (map && featuresLayer.current) {
         map.removeLayer(featuresLayer.current);
       }
-      if (map && graticuleLayer) {
-        map.removeLayer(graticuleLayer);
+      if (map && graticuleLayer.current) {
+        map.removeLayer(graticuleLayer.current);
       }
     };
   }, [map, links]);
+
+  // useEffect baru khusus untuk mengontrol visibilitas grid
+  useEffect(() => {
+    if (graticuleLayer.current) {
+      graticuleLayer.current.setVisible(isGridView);
+    }
+  }, [isGridView]);
+
   // useEffect untuk menggambar/memperbarui fitur di peta
   useEffect(() => {
     if (!map) return;
