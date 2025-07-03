@@ -603,6 +603,19 @@ const MainPage: React.FC = () => {
     }
   };
 
+  const handleMapClickRequest = (coords: [number, number]) => {
+    const [lon, lat] = coords;
+
+    // Reset form ke nilai default, lalu isi lat/lon dari klik
+    handleLinkCancel(); // Ini akan mereset semua field & editingLinkId
+
+    setLinkLat(lat.toFixed(2));
+    setLinkLon(lon.toFixed(2));
+
+    // Buka modal untuk membuat link baru
+    setIsLinkModalOpen(true);
+  };
+
   // Handler untuk modal grafik
   const handleOpenGraphModal = () => {
     if (fullAntennaData.length === 0) {
@@ -1396,6 +1409,7 @@ const MainPage: React.FC = () => {
                 onBeamDeleteRequest={handleDeleteRequest}
                 onLinkUpdateRequest={handleLinkUpdateRequest}
                 onLinkInfoRequest={handleLinkInfoRequest}
+                onMapClickRequest={handleMapClickRequest}
               />
             )}
           </div>

@@ -35,6 +35,7 @@ export interface Beam {
   id_antena: number;
   center_lat: number;
   center_lon: number;
+  antenna_directivity_dBi: number;
   contours: Contour[];
 }
 

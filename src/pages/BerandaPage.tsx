@@ -231,25 +231,45 @@ const BerandaPage: React.FC = () => {
             </button>
           </div>
         </nav>
-        {/* Mobile Menu */}
+      </header>
+      <div
+        className={`lg:hidden fixed inset-0 z-50 transition-opacity duration-300 ${
+          menuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+      >
+        {/* Backdrop */}
         <div
-          className={`lg:hidden fixed top-20 right-0 h-full w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out ${
-            menuOpen ? "translate-x-0" : "translate-x-full"
+          className="absolute inset-0 bg-black/50"
+          onClick={() => setMenuOpen(false)}
+        ></div>
+
+        {/* Menu Panel */}
+        <div
+          className={`absolute top-0 right-0 h-full w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out ${
+            menuOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
-          <div className="p-5 flex flex-col space-y-4">
+          <div className="p-5 flex justify-end">
+            <button
+              onClick={() => setMenuOpen(false)}
+              className="text-blue-800 text-3xl"
+            >
+              <FaTimes />
+            </button>
+          </div>
+          <div className="flex flex-col space-y-4 px-5">
             {navLinks.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
-                className="text-blue-800 font-bold hover:text-yellow-500 transition-colors"
+                className="text-blue-800 font-bold hover:text-yellow-500 transition-colors py-2"
               >
                 {link.text}
               </a>
             ))}
           </div>
         </div>
-      </header>
+      </div>
 
       <main>
         {/* Carousel Section */}

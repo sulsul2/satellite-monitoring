@@ -12,7 +12,8 @@ function Modal({
   const handleOnClose = (
     event: React.MouseEvent<HTMLDivElement, MouseEvent>
   ) => {
-    if (document.getElementById("container") == event.target) {
+    // Pastikan event.currentTarget ada dan merupakan elemen HTML
+    if (event.target === event.currentTarget) {
       onClose();
     }
   };
@@ -20,12 +21,18 @@ function Modal({
   if (!visible) return null;
   return (
     <div
-      id="container"
-      onClick={(e) => handleOnClose(e)}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30 backdrop-blur-sm"
+      onClick={handleOnClose}
+      // PERBAIKAN:
+      // 1. p-4: Menambahkan padding di sekeliling, mendorong modal ke bawah dari atas pada mobile.
+      // 2. items-start: Memulai modal dari atas pada layar kecil.
+      // 3. md:items-center: Mengembalikan ke tengah pada layar medium dan lebih besar.
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 pt-20 backdrop-blur-sm md:items-center md:pt-4"
     >
-      <div className="max-h-[95%] w-[90%] overflow-auto rounded-xl bg-white px-7 py-4 md:w-1/2 xl:px-16 xl:py-7">
-        {children}
+      <div className="w-full max-w-xl rounded-xl bg-white shadow-2xl">
+        {/* Konten di dalam modal sekarang bisa di-scroll jika melebihi tinggi layar */}
+        <div className="max-h-[85vh] overflow-y-auto p-6">
+            {children}
+        </div>
       </div>
     </div>
   );

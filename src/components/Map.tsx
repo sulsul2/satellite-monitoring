@@ -23,6 +23,7 @@ interface MapViewProps {
   onBeamDeleteRequest: (beamId: number) => void;
   onLinkUpdateRequest: (linkId: number) => void;
   onLinkInfoRequest: (linkData: Link) => void;
+  onMapClickRequest: (coords: [number, number]) => void; 
 }
 
 const VISUAL_SCALE_FACTOR = 13;
@@ -75,6 +76,7 @@ const MapView: React.FC<MapViewProps> = ({
   onBeamDeleteRequest,
   onLinkUpdateRequest,
   onLinkInfoRequest,
+  onMapClickRequest, 
 }) => {
   const mapElement = useRef<HTMLDivElement>(null);
 
@@ -173,23 +175,36 @@ const MapView: React.FC<MapViewProps> = ({
         ?.getElement()
         ?.querySelector("#info-content");
 
-      if (
-        feature &&
-        feature.get("type") === "beam-center" &&
-        infoContentElement
-      ) {
-        const coordinates = (feature.getGeometry() as Point).getCoordinates();
-        const lonLat = toLonLat(coordinates);
-        infoContentElement.innerHTML = `<b>Beam Center</b><br>Lat: ${lonLat[1].toFixed(
-          4
-        )}, Lon: ${lonLat[0].toFixed(4)}`;
-        infoOverlay.current?.setPosition(coordinates);
-      } else if (feature && feature.get("type") === "link-point") {
-        const linkId = feature.get("linkId");
-        const linkData = links.find((l) => l.id === linkId);
-        if (linkData) {
-          onLinkInfoRequest(linkData); // Panggil callback dengan data lengkap
+      if (feature && (feature.get("type") === "beam-center" || feature.get("type") === "link-point")) {
+        const infoContentElement = infoOverlay.current?.getElement()?.querySelector("#info-content");
+        if (infoContentElement) {
+          if (feature.get("type") === "beam-center") {
+            const coordinates = (feature.getGeometry() as Point).getCoordinates();
+            const lonLat = toLonLat(coordinates);
+            const beamId = feature.get("beamId");
+            const beamData = beams.find(b => b.id === beamId);
+            infoContentElement.innerHTML = `
+              <div class="p-1">
+                <div class="font-bold text-base mb-1">Beam #${beamId}</div>
+                <div class="text-xs">Lat: ${lonLat[1].toFixed(4)}</div>
+                <div class="text-xs">Lon: ${lonLat[0].toFixed(4)}</div>
+                <div class="text-xs mt-1">Directivity: ${beamData?.antenna_directivity_dBi?.toFixed(2) ?? 'N/A'} dBi</div>
+              </div>
+            `;
+            infoOverlay.current?.setPosition(coordinates);
+          } else if (feature.get("type") === "link-point") {
+            const linkId = feature.get("linkId");
+            const linkData = links.find((l) => l.id === linkId);
+            if (linkData) {
+              onLinkInfoRequest(linkData);
+            }
+          }
         }
+      } else {
+        // Jika tidak ada fitur yang diklik, panggil callback onMapClickRequest
+        const coordinates = map.getCoordinateFromPixel(event.pixel);
+        const lonLat = toLonLat(coordinates); // lonLat adalah [longitude, latitude]
+        onMapClickRequest(lonLat as [number, number]);
       }
     };
 
